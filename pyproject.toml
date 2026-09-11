@@ -1,0 +1,47 @@
+[project]
+name = "the-machine"
+version = "2.0.0"
+description = "Deteccion de manos y gestos en tiempo real con MediaPipe + OpenCV + Pygame, con interfaz tematica griega y reproductor de musica controlado por gestos"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "opencv-python>=4.8.0",
+  "mediapipe>=0.10.0",
+  "numpy>=1.24.0",
+  "pygame>=2.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "black",
+  "ruff",
+  "mypy",
+  "pytest",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.10"
+explicit_package_bases = true
+mypy_path = "."
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
