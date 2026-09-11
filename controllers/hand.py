@@ -37,9 +37,7 @@ class FingerRNN:
         s = 0.6 / np.sqrt(h)
         self.Wx: list[NDArray[np.float64]] = [rng.normal(0.0, s, (h, 1))]
         self.Wx += [rng.normal(0.0, s, (h, h)) for _ in range(layers - 1)]
-        self.Wh: list[NDArray[np.float64]] = [
-            rng.normal(0.0, s, (h, h)) for _ in range(layers)
-        ]
+        self.Wh: list[NDArray[np.float64]] = [rng.normal(0.0, s, (h, h)) for _ in range(layers)]
         self.b: list[NDArray[np.float64]] = [np.zeros(h) for _ in range(layers)]
         self.Wy: NDArray[np.float64] = rng.normal(0.0, 0.5, (2, h))
         self.by: NDArray[np.float64] = np.zeros(2)
@@ -103,35 +101,29 @@ class FingerRNN:
             from_above = [np.zeros((T, self.hidden)) for _ in range(self.layers)]
             from_above[-1][T - 1] = self.Wy.T @ grad_y
             mask = (
-                [np.ones((T, self.hidden)) for _ in range(self.layers)]
-                if masks is None
-                else masks
+                [np.ones((T, self.hidden)) for _ in range(self.layers)] if masks is None else masks
             )
-            for l in range(self.layers - 1, -1, -1):
+            for layer in range(self.layers - 1, -1, -1):
                 acc_time = np.zeros(self.hidden)
                 for t in range(T - 1, -1, -1):
-                    delta = mask[l][t] * from_above[l][t] + acc_time
-                    dz = delta * (1.0 - hs[l][t] * hs[l][t])
-                    inp = xi[t] if l == 0 else ss[l - 1][t]
-                    dWx[l] += np.outer(dz, inp)
-                    dWh[l] += np.outer(
-                        dz, hs[l][t - 1] if t > 0 else np.zeros(self.hidden)
-                    )
-                    db[l] += dz
-                    acc_time = self.Wh[l].T @ dz
-                    if l > 0:
-                        from_above[l - 1][t] += self.Wx[l].T @ dz
+                    delta = mask[layer][t] * from_above[layer][t] + acc_time
+                    dz = delta * (1.0 - hs[layer][t] * hs[layer][t])
+                    inp = xi[t] if layer == 0 else ss[layer - 1][t]
+                    dWx[layer] += np.outer(dz, inp)
+                    dWh[layer] += np.outer(dz, hs[layer][t - 1] if t > 0 else np.zeros(self.hidden))
+                    db[layer] += dz
+                    acc_time = self.Wh[layer].T @ dz
+                    if layer > 0:
+                        from_above[layer - 1][t] += self.Wx[layer].T @ dz
         n = max(1, len(xs))
-        for l in range(self.layers):
-            self.Wx[l] -= self.lr * dWx[l] / n
-            self.Wh[l] -= self.lr * dWh[l] / n
-            self.b[l] -= self.lr * db[l] / n
+        for layer in range(self.layers):
+            self.Wx[layer] -= self.lr * dWx[layer] / n
+            self.Wh[layer] -= self.lr * dWh[layer] / n
+            self.b[layer] -= self.lr * db[layer] / n
         self.Wy -= self.lr * dWy / n
         self.by -= self.lr * dby / n
 
-    def _make_masks(
-        self, rng: np.random.Generator, T: int
-    ) -> list[NDArray[np.float64]] | None:
+    def _make_masks(self, rng: np.random.Generator, T: int) -> list[NDArray[np.float64]] | None:
         if self.dropout <= 0.0:
             return None
         keep = 1.0 - self.dropout
@@ -147,24 +139,20 @@ class FingerRNN:
         masks: list[NDArray[np.float64]] | None = None,
     ) -> tuple[list[NDArray[np.float64]], list[NDArray[np.float64]]]:
         T = xi.shape[0]
-        hs: list[NDArray[np.float64]] = [
-            np.zeros((T, self.hidden)) for _ in range(self.layers)
-        ]
-        ss: list[NDArray[np.float64]] = [
-            np.zeros((T, self.hidden)) for _ in range(self.layers)
-        ]
+        hs: list[NDArray[np.float64]] = [np.zeros((T, self.hidden)) for _ in range(self.layers)]
+        ss: list[NDArray[np.float64]] = [np.zeros((T, self.hidden)) for _ in range(self.layers)]
         h_prev = [np.zeros(self.hidden) for _ in range(self.layers)]
         for t in range(T):
             inp: NDArray[np.float64] = xi[t]
-            for l in range(self.layers):
-                h = np.tanh(self.Wx[l] @ inp + self.Wh[l] @ h_prev[l] + self.b[l])
-                hs[l][t] = h
+            for layer in range(self.layers):
+                h = np.tanh(self.Wx[layer] @ inp + self.Wh[layer] @ h_prev[layer] + self.b[layer])
+                hs[layer][t] = h
                 if train and self.dropout > 0.0 and masks is not None:
-                    s = h * masks[l][t]
+                    s = h * masks[layer][t]
                 else:
                     s = h
-                ss[l][t] = s
-                h_prev[l] = h
+                ss[layer][t] = s
+                h_prev[layer] = h
                 inp = s
         return hs, ss
 
@@ -203,10 +191,10 @@ class HandController:
             stale.unlink()
         for i, rnn in enumerate(self.fingers):
             d: dict[str, NDArray[np.float64]] = {"Wy": rnn.Wy, "by": rnn.by}
-            for l in range(rnn.layers):
-                d[f"Wx_{l}"] = rnn.Wx[l]
-                d[f"Wh_{l}"] = rnn.Wh[l]
-                d[f"b_{l}"] = rnn.b[l]
+            for layer in range(rnn.layers):
+                d[f"Wx_{layer}"] = rnn.Wx[layer]
+                d[f"Wh_{layer}"] = rnn.Wh[layer]
+                d[f"b_{layer}"] = rnn.b[layer]
             np.savez(_MODEL_DIR / f"finger_{i + 1}.npz", **d)  # type: ignore[arg-type]
 
     def load(self) -> bool:
@@ -218,15 +206,14 @@ class HandController:
                 continue
             d = np.load(p)
             if "Wx_0" not in d or any(
-                f"Wh_{l}" not in d or f"b_{l}" not in d
-                for l in range(rnn.layers)
+                f"Wh_{layer}" not in d or f"b_{layer}" not in d for layer in range(rnn.layers)
             ):
                 ok = False
                 continue
-            for l in range(rnn.layers):
-                rnn.Wx[l] = d[f"Wx_{l}"]
-                rnn.Wh[l] = d[f"Wh_{l}"]
-                rnn.b[l] = d[f"b_{l}"]
+            for layer in range(rnn.layers):
+                rnn.Wx[layer] = d[f"Wx_{layer}"]
+                rnn.Wh[layer] = d[f"Wh_{layer}"]
+                rnn.b[layer] = d[f"b_{layer}"]
             rnn.Wy = d["Wy"]
             rnn.by = d["by"]
         return ok
@@ -267,10 +254,7 @@ class HandController:
                 target=target,
                 gap=gap,
             )
-            print(
-                f"[train_all] {names[i]:6s} epochs={epochs:3d} "
-                f"acc={ta:.3f} val_acc={va:.3f}"
-            )
+            print(f"[train_all] {names[i]:6s} epochs={epochs:3d} " f"acc={ta:.3f} val_acc={va:.3f}")
         hc.save()
         return hc
 

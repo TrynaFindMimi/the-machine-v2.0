@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from typing import Final
 
 import numpy as np
-from numpy.typing import NDArray
 
 from config.settings import THUMB
 from core.fingers import (
@@ -52,10 +51,7 @@ def _landmarks(p4: tuple[float, float]):
 
 def _min_dist_palm(x: float, y: float) -> float:
     pts = _landmarks((0.45, 0.60))
-    return min(
-        float(((x - pts[i].x) ** 2 + (y - pts[i].y) ** 2) ** 0.5)
-        for i in THUMB_PALM_IDS
-    )
+    return min(float(((x - pts[i].x) ** 2 + (y - pts[i].y) ** 2) ** 0.5) for i in THUMB_PALM_IDS)
 
 
 def _build_dataset(n: int = 400, seed: int = _THUMB_SEED):

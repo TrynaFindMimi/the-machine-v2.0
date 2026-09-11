@@ -27,7 +27,7 @@ Detección de manos y gestos en tiempo real usando **MediaPipe** y **OpenCV**, c
 
 ## Instalación
 
-> Lanzamiento rápido por SO: usa `run-windows.ps1` (PowerShell) o `run-linux.sh` (bash). Crean el entorno virtual, instalan dependencias y arrancan `main.py`.
+> Lanzamiento rápido: `make start` en Linux/Mac y `start.ps1` en Windows (PowerShell). Ambos crean el entorno virtual `venv313`, instalan las dependencias y arrancan `main.py`. Opcionalmente `make start ARGS=music` (o `start.ps1 music`) para iniciar en un modo concreto.
 
 ### 1. Crear entorno virtual
 
@@ -48,7 +48,7 @@ pip install -r requirements.txt
 | **opencv-python** | Captura de video, preprocesado y dibujo de la UI |
 | **mediapipe** | 21 landmarks + 8 gestos |
 | **numpy** | Perceptron y coordenadas |
-| **pygame** | Ventana 1280x720 y reproducción de audio |
+| **pygame-ce** | Ventana 1280x720 y reproducción de audio. Edición comunitaria de `pygame` (mismo `import pygame`); sus wheels para Python 3.14 sí incluyen el módulo `mixer`.
 
 ### 3. Descargar modelos
 

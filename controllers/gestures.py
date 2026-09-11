@@ -63,7 +63,7 @@ class MusicGestureController:
     def feed(self, feat: NDArray[np.float64]) -> tuple[int, str]:
         self.window.append(feat)
         if len(self.window) > self.window_len:
-            self.window = self.window[-self.window_len:]
+            self.window = self.window[-self.window_len :]
         if len(self.window) < self.window_len:
             return -1, ""
         window_np = np.stack(self.window, axis=0)
@@ -76,9 +76,6 @@ class MusicGestureController:
             self.last_count = count
             self._last_change_at = now
             self._last_fired = -1
-        if (
-            self.agreement >= AGREE_REQUIRED
-            and now - self._last_change_at >= SETTLE_SECONDS
-        ):
+        if self.agreement >= AGREE_REQUIRED and now - self._last_change_at >= SETTLE_SECONDS:
             return count, self._apply_action(count)
         return count, ""
